@@ -31,12 +31,20 @@ import {
   type TreeMenuItem,
 } from "@nicecxone/lyra-ui";
 import type { SortDirection, ColumnToggleItem } from "@nicecxone/lyra-ui";
+import { CampaignDetailsModal } from "./CampaignDetailsModal";
 
 /* ── Navigation items — grouped nav tree matching the "Configure" reference
    screenshot: a "Campaigns" group (defaultOpen) containing Campaigns
-   (active)/Campaign Templates/Segmentation. TreeMenuChild has no icon prop
-   in lyra-ui today, so these render as plain text rows, per the user's
-   direction not to add icon support to lyra-ui for this. ── */
+   (active)/Campaign Templates/Segmentation, plus every other top-level
+   section from the screenshot below it — each collapsed by default and
+   expandable, matching the reference exactly. TreeMenuChild has no icon
+   prop in lyra-ui today, so all children render as plain text rows, per
+   the user's direction not to add icon support to lyra-ui for this.
+   TreeMenu only renders a group's expand chevron when it has at least one
+   child (`children.length > 0`), so each section below gets a single
+   placeholder child sharing its parent's name — real sub-items for these
+   sections weren't specified, so nothing beyond "this section exists and
+   expands" is invented here. ── */
 const panelItems: TreeMenuItem[] = [
   {
     label: "Campaigns",
@@ -47,10 +55,22 @@ const panelItems: TreeMenuItem[] = [
       { label: "Segmentation" },
     ],
   },
+  { label: "Services", children: [{ label: "Services" }] },
+  { label: "Agents", children: [{ label: "Agents" }] },
+  { label: "Ticketing", children: [{ label: "Ticketing" }] },
+  { label: "Contacts", children: [{ label: "Contacts" }] },
+  { label: "Account", children: [{ label: "Account" }] },
+  { label: "Voice", children: [{ label: "Voice" }] },
+  { label: "Email", children: [{ label: "Email" }] },
+  { label: "SMS", children: [{ label: "SMS" }] },
+  { label: "Web Widget", children: [{ label: "Web Widget" }] },
+  { label: "Messaging", children: [{ label: "Messaging" }] },
+  { label: "Input / Output", children: [{ label: "Input / Output" }] },
+  { label: "System", children: [{ label: "System" }] },
 ];
 
 /* ── Mock data — mirrors the "Campaigns" reference screenshot ── */
-interface CampaignRecord {
+export interface CampaignRecord {
   id: number;
   name: string;
   playState: "phone" | "star";
@@ -107,6 +127,9 @@ export function OutboundCampaignsPage({ showChip = false }: { showChip?: boolean
 
   /* ── Misc toolbar state ── */
   const [hierarchical, setHierarchical] = useState(false);
+
+  /* ── Campaign details modal ── */
+  const [selectedRecord, setSelectedRecord] = useState<CampaignRecord | null>(null);
 
   /* ── Table state ── */
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,11 +202,27 @@ export function OutboundCampaignsPage({ showChip = false }: { showChip?: boolean
   const displayStart = sortedRecords.length > 0 ? startIndex + 1 : 0;
   const displayEnd = Math.min(startIndex + rowsPerPage, sortedRecords.length);
 
+  /* ── Campaign details modal navigation — steps through the current
+     sorted/filtered list (not just the visible page), so Prev/Next in the
+     modal stay meaningful regardless of which page was open when a row
+     was clicked. Disabled at either end (undefined prop) rather than
+     wrapping around. ── */
+  const selectedIndex = selectedRecord
+    ? sortedRecords.findIndex((r) => r.id === selectedRecord.id)
+    : -1;
+  const handleNavigatePrev =
+    selectedIndex > 0 ? () => setSelectedRecord(sortedRecords[selectedIndex - 1]) : undefined;
+  const handleNavigateNext =
+    selectedIndex !== -1 && selectedIndex < sortedRecords.length - 1
+      ? () => setSelectedRecord(sortedRecords[selectedIndex + 1])
+      : undefined;
+
   function formatNum(n: number | null): string {
     return n === null ? "—" : n.toLocaleString();
   }
 
   return (
+    <>
     <AdminShell
       storageKeyPrefix="lyra_outbound_campaigns"
       navTitle="Configure"
@@ -378,8 +417,19 @@ export function OutboundCampaignsPage({ showChip = false }: { showChip?: boolean
                       </TableCell>
                     );
                   }
+                  if (key === "name") {
+                    return (
+                      <TableCell
+                        key={key}
+                        className={`${col.flex} text-lyra-fg-link cursor-pointer hover:underline`}
+                        onClick={() => setSelectedRecord(record)}
+                      >
+                        {record.name}
+                      </TableCell>
+                    );
+                  }
                   return (
-                    <TableCell key={key} className={`${col.flex}${key === "name" ? " text-lyra-fg-link cursor-pointer hover:underline" : ""}`}>
+                    <TableCell key={key} className={col.flex}>
                       {String(record[key as keyof CampaignRecord])}
                     </TableCell>
                   );
@@ -403,5 +453,13 @@ export function OutboundCampaignsPage({ showChip = false }: { showChip?: boolean
         displayEnd={displayEnd}
       />
     </AdminShell>
+
+    <CampaignDetailsModal
+      record={selectedRecord}
+      onClose={() => setSelectedRecord(null)}
+      onNavigatePrev={handleNavigatePrev}
+      onNavigateNext={handleNavigateNext}
+    />
+    </>
   );
 }
