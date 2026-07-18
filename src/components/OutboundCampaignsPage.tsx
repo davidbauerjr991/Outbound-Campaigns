@@ -118,7 +118,7 @@ const DATE_RANGE_OPTIONS = [
   { value: "last30", label: "Last 30 Days" },
 ];
 
-export function OutboundCampaignsPage({ showChip = false }: { showChip?: boolean }) {
+export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boolean }) {
   /* ── Filter panel row (funnel icon toggle) ── */
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [callCenter, setCallCenter] = useState("");
@@ -230,7 +230,7 @@ export function OutboundCampaignsPage({ showChip = false }: { showChip?: boolean
       defaultLeftPinned
       showPageHeader
       pageTitle="Campaigns"
-      pageChip={showChip ? "Active" : undefined}
+      pageBadge={showBadge ? "Active" : undefined}
       pageActions={
         <>
           <Button variant="outline">Deactivate</Button>

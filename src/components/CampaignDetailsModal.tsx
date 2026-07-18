@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, Fragment, type ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,8 +14,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import {
-  Overlay,
-  Container,
+  Modal,
   ActionIconButton,
   TabList,
   Tab,
@@ -88,7 +87,7 @@ export function CampaignDetailsModal({
   }, [record]);
 
   if (!displayRecord) {
-    return <Overlay variant="dark" open={false} onClose={onClose} />;
+    return <Modal open={false} onClose={onClose} />;
   }
 
   const timestamp = "07/15/2026, 04:48:29";
@@ -98,14 +97,14 @@ export function CampaignDetailsModal({
     displayRecord.amOption === "headset" ? "Transfer all Connections" : "Send to Voicemail";
 
   return (
-    <Overlay variant="dark" open={!!record} onClose={onClose} closeOnBackdropClick>
-      <Container
-        key={displayRecord.id}
-        variant="modal"
-        headerTitle="Campaign details"
-        headerSubhead={displayRecord.name}
-        headerActions={
-          <div className="flex items-center gap-0.5">
+    <Modal
+      open={!!record}
+      onClose={onClose}
+      closeOnBackdropClick
+      headerTitle="Campaign details"
+      headerSubhead={displayRecord.name}
+      headerActions={
+        <div className="flex items-center gap-0.5">
             <ActionIconButton title="Previous campaign" onClick={onNavigatePrev} disabled={!onNavigatePrev}>
               <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
             </ActionIconButton>
@@ -138,12 +137,19 @@ export function CampaignDetailsModal({
             </ActionIconButton>
           </div>
         }
-        className={
-          isFullscreen
-            ? "flex flex-col transition-all duration-200 w-screen h-screen rounded-none"
-            : "flex flex-col transition-all duration-200 w-[1400px] max-w-[calc(100vw-4rem)] h-[860px] max-h-[calc(100vh-4rem)] rounded-lyra-lg"
-        }
-      >
+      className={
+        isFullscreen
+          ? "flex flex-col transition-all duration-200 w-screen h-screen rounded-none"
+          : "flex flex-col transition-all duration-200 w-[1400px] max-w-[calc(100vw-4rem)] h-[860px] max-h-[calc(100vh-4rem)] rounded-lyra-lg"
+      }
+    >
+      {/* Keyed by record id — remounts the body on prev/next navigation so
+          uncontrolled state (Accordion's `defaultValue`) resets per record,
+          while `Modal` itself (the Radix Dialog root/portal/overlay) stays
+          mounted throughout so its open/close fade animation still plays
+          correctly, same as the old `Overlay` (persistent) + `Container`
+          (keyed) split. */}
+      <Fragment key={displayRecord.id}>
         {/* Uploaded / modified date row */}
         <div className="grid grid-cols-2 gap-6 px-5 pb-4 border-b border-lyra-border-subtle">
           <Field label="Uploaded Date">{timestamp}</Field>
@@ -240,7 +246,7 @@ export function CampaignDetailsModal({
           <Button variant="outline">Requeue</Button>
           <Button disabled>Save</Button>
         </div>
-      </Container>
-    </Overlay>
+      </Fragment>
+    </Modal>
   );
 }
