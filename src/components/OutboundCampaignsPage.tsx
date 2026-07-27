@@ -162,6 +162,19 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
     key, label: columnConfig[key].label,
   }));
 
+  /* Column resize — reuses each column's existing `min-w-[Npx]` (already in
+     `col.flex`, floor for the *unresized* flex layout) as the resize drag's
+     own clamp floor too, rather than picking a second, possibly-inconsistent
+     number. `columnKey` below (already used for reorder on the sortable
+     columns) is what keeps a resize applied to the whole column — both the
+     header cell and every row's matching `TableCell` read the same
+     `columnKey` from `Table`'s shared width map (see table.tsx's "Column
+     resize" comment). */
+  function minWidthFor(flex: string): number {
+    const match = flex.match(/min-w-\[(\d+)px\]/);
+    return match ? Number(match[1]) : 80;
+  }
+
   const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set(Object.keys(columnConfig) as ColKey[]));
 
   const { columnOrder: allColumnOrder, dragOverKey, dragHandlers } = useColumnReorder<ColKey>(Object.keys(columnConfig) as ColKey[]);
@@ -338,11 +351,19 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
                       columnKey={key}
                       dragHandlers={dragHandlers}
                       isDragOver={dragOverKey === key}
+                      resizable
+                      minWidth={minWidthFor(col.flex)}
                     >
                       {col.label}
                     </SortableTableHead>
                   );
                 }
+                // "controls" is a fixed-width icon-button column (Refresh/
+                // Pause/Stop, w-[120px] shrink-0, no min-w-[Npx] floor to
+                // even clamp against) — not a real "data" column, so it's
+                // left out of resize rather than letting it shrink to a
+                // point where the three buttons no longer fit.
+                const headResizable = key !== "controls";
                 return (
                   <TableHead
                     key={key}
@@ -354,6 +375,9 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
                     onDragEnd={dragHandlers.onDragEnd}
                     onDragLeave={dragHandlers.onDragLeave}
                     style={dragOverKey === key ? { backgroundColor: "var(--lyra-color-bg-active-moderate)" } : undefined}
+                    resizable={headResizable}
+                    columnKey={headResizable ? key : undefined}
+                    minWidth={minWidthFor(col.flex)}
                   >
                     {col.label}
                   </TableHead>
@@ -369,7 +393,7 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
 
                   if (key === "playState") {
                     return (
-                      <TableCell key={key} className={col.flex}>
+                      <TableCell key={key} className={col.flex} columnKey={key}>
                         {record.playState === "phone"
                           ? <Phone className="h-4 w-4 text-lyra-fg-link" strokeWidth={1.5} />
                           : <Star className="h-4 w-4 text-lyra-fg-disabled" strokeWidth={1.5} />}
@@ -378,7 +402,7 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
                   }
                   if (key === "amOption") {
                     return (
-                      <TableCell key={key} className={col.flex}>
+                      <TableCell key={key} className={col.flex} columnKey={key}>
                         {record.amOption === "headset"
                           ? <Headset className="h-4 w-4 text-lyra-fg-secondary" strokeWidth={1.5} />
                           : <ClipboardPen className="h-4 w-4 text-lyra-fg-secondary" strokeWidth={1.5} />}
@@ -405,14 +429,14 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
                   }
                   if (key === "uploaded" || key === "loaded" || key === "completed" || key === "remaining") {
                     return (
-                      <TableCell key={key} className={col.flex}>
+                      <TableCell key={key} className={col.flex} columnKey={key}>
                         {formatNum(record[key])}
                       </TableCell>
                     );
                   }
                   if (key === "percentComplete") {
                     return (
-                      <TableCell key={key} className={col.flex}>
+                      <TableCell key={key} className={col.flex} columnKey={key}>
                         {record.percentComplete}%
                       </TableCell>
                     );
@@ -422,6 +446,7 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
                       <TableCell
                         key={key}
                         className={`${col.flex} text-lyra-fg-link cursor-pointer hover:underline`}
+                        columnKey={key}
                         onClick={() => setSelectedRecord(record)}
                       >
                         {record.name}
@@ -429,7 +454,7 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
                     );
                   }
                   return (
-                    <TableCell key={key} className={col.flex}>
+                    <TableCell key={key} className={col.flex} columnKey={key}>
                       {String(record[key as keyof CampaignRecord])}
                     </TableCell>
                   );

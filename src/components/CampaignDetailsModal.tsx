@@ -22,23 +22,46 @@ import {
   Accordion,
   Checkbox,
   Button,
+  Label,
 } from "@nicecxone/lyra-ui";
 import type { CampaignRecord } from "./OutboundCampaignsPage";
 
-/* ── Field — label-over-value display row. No dedicated lyra-ui component
-   for a static key/value pair exists (this isn't a form input), so this
-   composes the same typography tokens TableHead/labels already use
-   (`lyra-label` for the caption, `lyra-body-md` for the value) rather than
-   inventing new styling. ── */
+/* ── Field — label-over-value display row, for values that aren't a plain
+   string (an icon + text, or an action button). Kept only for those cases;
+   plain string/number fields below use `LabelField` instead.
+   Was a hand-rolled `<span className="lyra-label text-lyra-fg-secondary">`
+   for the caption — wrong, that's the same muted gray `Label` itself only
+   applies in its `readonly` state, and these aren't locked/readonly
+   controls (an edit button, an icon + text row). Use the real `Label`
+   component instead so the caption renders at its correct default
+   `lyra-label text-lyra-fg-default` — see lyra-ui's Input stories, "Label
+   With Buttons" (input.stories.tsx), which documents this exact
+   label-plus-arbitrary-content composition. ── */
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="lyra-label text-lyra-fg-secondary">{label}</span>
-      <div className="lyra-body-md text-lyra-fg-default flex items-center gap-2 min-h-[20px]">
+    <div className="flex flex-col gap-0">
+      <Label label={label} />
+      <div className="lyra-body-md text-lyra-fg-default flex items-center gap-0.5 min-h-[20px]">
         {children}
       </div>
     </div>
   );
+}
+
+/* ── LabelField — plain string/number label-value pairs use the real
+   `Label` component's `supportingText` (a value line rendered below the
+   caption, label.tsx) instead of the hand-rolled `Field` markup above. No
+   input control is rendered.
+   Was passing `readonly` here — that's wrong: `readonly` is meant for a
+   label paired with an actual read-only *input* (still an editable-looking
+   control, just locked), and it mutes the caption to
+   `text-lyra-fg-secondary` to signal that. These aren't inputs at all, so
+   the caption should render exactly like any other field label —
+   `text-lyra-fg-default`, the same as every `Input`/`Select` label in
+   `FormTemplate` — with the value underneath staying secondary via
+   `supportingText`'s own styling (that part was already correct). ── */
+function LabelField({ label, value }: { label: string; value: string | number }) {
+  return <Label label={label} supportingText={String(value)} />;
 }
 
 const TABS = [
@@ -101,7 +124,7 @@ export function CampaignDetailsModal({
       open={!!record}
       onClose={onClose}
       closeOnBackdropClick
-      headerTitle="Campaign details"
+      headerTitle="Campaign Details"
       headerSubhead={displayRecord.name}
       headerActions={
         <div className="flex items-center gap-0.5">
@@ -150,10 +173,14 @@ export function CampaignDetailsModal({
           correctly, same as the old `Overlay` (persistent) + `Container`
           (keyed) split. */}
       <Fragment key={displayRecord.id}>
-        {/* Uploaded / modified date row */}
+        {/* Uploaded / modified date row — these are plain display values,
+            not editable-looking controls, so use `LabelField` (real `Label`
+            + `supportingText`, same as every other read-only field in this
+            modal) instead of `Input`'s `readonly` state, which implies an
+            actual (locked) input box. */}
         <div className="grid grid-cols-2 gap-6 px-5 pb-4 border-b border-lyra-border-subtle">
-          <Field label="Uploaded Date">{timestamp}</Field>
-          <Field label="Last Modified On">{timestamp}</Field>
+          <LabelField label="Uploaded Date" value={timestamp} />
+          <LabelField label="Last Modified On" value={timestamp} />
         </div>
 
         <TabList className="px-5" overflowMenu>
@@ -165,18 +192,33 @@ export function CampaignDetailsModal({
         </TabList>
 
         <div className="flex-1 overflow-y-auto min-h-0 bg-lyra-bg-surface-canvas">
-          <TabPanel active={activeTab === "General"}>
+          <TabPanel active={activeTab === "General"} className="p-5">
+            {/* `max-w-[1000px] mx-auto` sits on the Accordion itself (its
+                root is `w-full`, accordion.tsx), not just the content div
+                inside — matching lyra-ui's `FormTemplate`'s own new
+                "Placement" Accordion example (form-template.tsx), where the
+                whole accordion — header row included — is capped/centered
+                at the form's 1000px width. Capping only the inner content
+                left the header spanning the full tab width, misaligned
+                with the fields underneath it. */}
             <Accordion
+              className="max-w-[1000px] mx-auto"
               defaultValue="general"
               items={[
                 {
                   id: "general",
-                  title: "General Information",
+                  // lyra-heading-md — plain string titles render at
+                  // `lyra-body-md` (accordion.tsx's default), which is too
+                  // light for a section header; wrap in the same heading
+                  // token dashboard-queue.tsx uses for its own Accordion
+                  // titles (there, explicitly matched to DashboardCard's
+                  // header weight) so this reads as a real header.
+                  title: <span className="lyra-heading-md">General Information</span>,
                   content: (
                     <div className="grid grid-cols-2 gap-x-10 gap-y-5">
                       <div className="flex flex-col gap-5">
-                        <Field label="Campaign ID">{campaignId}</Field>
-                        <Field label="Name">{displayRecord.name}</Field>
+                        <LabelField label="Campaign ID" value={campaignId} />
+                        <LabelField label="Name" value={displayRecord.name} />
                         <Field label="Campaign State">
                           <ActionIconButton
                             size="sm"
@@ -186,11 +228,12 @@ export function CampaignDetailsModal({
                             <Pencil className="h-4 w-4" strokeWidth={1.5} />
                           </ActionIconButton>
                         </Field>
-                        <Field label="Type">{displayRecord.type}</Field>
-                        <Field label="Service">
-                          {displayRecord.serviceName} ({campaignId})
-                        </Field>
-                        <Field label="Voice">🇺🇸 Julie</Field>
+                        <LabelField label="Type" value={displayRecord.type} />
+                        <LabelField
+                          label="Service"
+                          value={`${displayRecord.serviceName} (${campaignId})`}
+                        />
+                        <LabelField label="Voice" value="🇺🇸 Julie" />
                         <Field label="AM Option">
                           {displayRecord.amOption === "headset" ? (
                             <Headset className="h-4 w-4 text-lyra-fg-secondary" strokeWidth={1.5} />
@@ -199,20 +242,20 @@ export function CampaignDetailsModal({
                           )}
                           {amOptionLabel}
                         </Field>
-                        <Field label="Scrub">None</Field>
+                        <LabelField label="Scrub" value="None" />
                         <Field label="Schedule">
                           <CalendarDays className="h-4 w-4 text-lyra-fg-secondary" strokeWidth={1.5} />
                           {displayRecord.schedule}
                         </Field>
                       </div>
                       <div className="flex flex-col gap-5">
-                        <Field label="Dialing Profile (Current Service Value)">--</Field>
-                        <Field label="Dialing Regime (Current Service Value)">(1000049)</Field>
-                        <Field label="Dialing Sort (Current Service Value)">default</Field>
-                        <Field label="Dialing Strategy">{dialingStrategy}</Field>
-                        <Field label="Operator Phone">(628) 386-0829</Field>
-                        <Field label="Caller ID">(650) 458-5753</Field>
-                        <Field label="Callback Phone">(650) 458-5753</Field>
+                        <LabelField label="Dialing Profile (Current Service Value)" value="--" />
+                        <LabelField label="Dialing Regime (Current Service Value)" value="(1000049)" />
+                        <LabelField label="Dialing Sort (Current Service Value)" value="default" />
+                        <LabelField label="Dialing Strategy" value={dialingStrategy} />
+                        <LabelField label="Operator Phone" value="(628) 386-0829" />
+                        <LabelField label="Caller ID" value="(650) 458-5753" />
+                        <LabelField label="Callback Phone" value="(650) 458-5753" />
                         <Checkbox
                           label="Is Requeue"
                           checked={isRequeue}
