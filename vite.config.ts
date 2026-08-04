@@ -3,6 +3,10 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
+  // Served as a GitHub Pages project site (github.com/<user>/Outbound-Campaigns
+  // -> <user>.github.io/Outbound-Campaigns/), so all built asset URLs need
+  // this prefix instead of resolving from the domain root.
+  base: "/Outbound-Campaigns/",
   plugins: [react()],
   resolve: {
     alias: {

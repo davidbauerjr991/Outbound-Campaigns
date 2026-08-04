@@ -7,7 +7,9 @@ import App from "./App";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    {/* basename matches vite.config.ts's `base` so client-side routes resolve
+        correctly under the GitHub Pages project path (/Outbound-Campaigns/) */}
+    <BrowserRouter basename="/Outbound-Campaigns">
       <App />
     </BrowserRouter>
   </StrictMode>
