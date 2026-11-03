@@ -3,7 +3,7 @@ import { LeftNav, type NavItem } from "@nicecxone/lyra-ui";
 import { NavSearchField } from "./NavSearchField";
 import { OnlineHelpButton } from "./OnlineHelpButton";
 
-export type SidebarPage = "monitor" | "configure";
+export type SidebarPage = "monitor" | "configure" | "review";
 
 /**
  * App-level icon rail — matches lyra-ui's "Outbound Engagement Left Nav"
@@ -12,9 +12,8 @@ export type SidebarPage = "monitor" | "configure";
  * routing state) instead of a hardcoded `active: true` on Configure — same
  * "derive active + wire onClick from real nav state" fix PROJECT_SUMMARY.md
  * documents for agent-next-gen-v1/lyra-ux-templates' own LeftNav usage
- * (`buildNavItems(hasActiveInteraction, onClick)`). "Review" has no page
- * built yet, so it's left inert (no `onClick`) rather than wired to
- * something that doesn't exist.
+ * (`buildNavItems(hasActiveInteraction, onClick)`). "Review" opens the
+ * reporting area (ReviewPage).
  */
 function buildNavItems(activePage: SidebarPage, onNavigate: (page: SidebarPage) => void): NavItem[] {
   return [
@@ -30,7 +29,12 @@ function buildNavItems(activePage: SidebarPage, onNavigate: (page: SidebarPage) 
       active: activePage === "configure",
       onClick: () => onNavigate("configure"),
     },
-    { icon: <BarChart3 className="h-4 w-4" strokeWidth={1.5} />, label: "Review" },
+    {
+      icon: <BarChart3 className="h-4 w-4" strokeWidth={1.5} />,
+      label: "Review",
+      active: activePage === "review",
+      onClick: () => onNavigate("review"),
+    },
   ];
 }
 

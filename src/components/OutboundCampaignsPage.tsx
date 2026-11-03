@@ -16,7 +16,6 @@ import {
   ActionIconButton,
   Checkbox,
   Select,
-  AdminShell,
   Table,
   TableHeader,
   TableBody,
@@ -28,46 +27,9 @@ import {
   TableFooter,
   ColumnToggle,
   useColumnReorder,
-  type TreeMenuItem,
 } from "@nicecxone/lyra-ui";
 import type { SortDirection, ColumnToggleItem } from "@nicecxone/lyra-ui";
 import { CampaignDetailsModal } from "./CampaignDetailsModal";
-
-/* ── Navigation items — grouped nav tree matching the "Configure" reference
-   screenshot: a "Campaigns" group (defaultOpen) containing Campaigns
-   (active)/Campaign Templates/Segmentation, plus every other top-level
-   section from the screenshot below it — each collapsed by default and
-   expandable, matching the reference exactly. TreeMenuChild has no icon
-   prop in lyra-ui today, so all children render as plain text rows, per
-   the user's direction not to add icon support to lyra-ui for this.
-   TreeMenu only renders a group's expand chevron when it has at least one
-   child (`children.length > 0`), so each section below gets a single
-   placeholder child sharing its parent's name — real sub-items for these
-   sections weren't specified, so nothing beyond "this section exists and
-   expands" is invented here. ── */
-const panelItems: TreeMenuItem[] = [
-  {
-    label: "Campaigns",
-    defaultOpen: true,
-    children: [
-      { label: "Campaigns", active: true },
-      { label: "Campaign Templates" },
-      { label: "Segmentation" },
-    ],
-  },
-  { label: "Services", children: [{ label: "Services" }] },
-  { label: "Agents", children: [{ label: "Agents" }] },
-  { label: "Ticketing", children: [{ label: "Ticketing" }] },
-  { label: "Contacts", children: [{ label: "Contacts" }] },
-  { label: "Account", children: [{ label: "Account" }] },
-  { label: "Voice", children: [{ label: "Voice" }] },
-  { label: "Email", children: [{ label: "Email" }] },
-  { label: "SMS", children: [{ label: "SMS" }] },
-  { label: "Web Widget", children: [{ label: "Web Widget" }] },
-  { label: "Messaging", children: [{ label: "Messaging" }] },
-  { label: "Input / Output", children: [{ label: "Input / Output" }] },
-  { label: "System", children: [{ label: "System" }] },
-];
 
 /* ── Mock data — mirrors the "Campaigns" reference screenshot ── */
 export interface CampaignRecord {
@@ -236,43 +198,13 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
 
   return (
     <>
-    <AdminShell
-      storageKeyPrefix="lyra_outbound_campaigns"
-      navTitle="Configure"
-      navItems={panelItems}
-      defaultLeftPinned
-      showPageHeader
-      pageTitle="Campaigns"
-      pageBadge={showBadge ? "Active" : undefined}
-      pageActions={
-        <>
-          <Button variant="outline">Deactivate</Button>
-          <Button variant="outline">Requeue</Button>
-          <Button>Upload</Button>
-        </>
-      }
-      interiorPanelContent={
-        <div className="p-4">
-          <p className="lyra-body-md text-lyra-fg-secondary">Panel content goes here.</p>
-        </div>
-      }
-      rightPanelContent={
-        <div className="p-4">
-          <p className="lyra-body-md text-lyra-fg-secondary">Side panel content.</p>
-        </div>
-      }
-    >
-      {/* ════ Toolbar ════ */}
+          {/* ════ Toolbar ════ */}
       <TableToolbar
         className="px-6"
+        title={`${sortedRecords.length} Records`}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="Quick Search"
-        filters={
-          <span className="lyra-body-md text-lyra-fg-secondary whitespace-nowrap">
-            {sortedRecords.length} Records
-          </span>
-        }
         actionDefs={[
           { key: "refresh", label: "Refresh", icon: <RefreshCw className="h-4 w-4" strokeWidth={1.5} /> },
         ]}
@@ -477,7 +409,7 @@ export function OutboundCampaignsPage({ showBadge = false }: { showBadge?: boole
         displayStart={displayStart}
         displayEnd={displayEnd}
       />
-    </AdminShell>
+
 
     <CampaignDetailsModal
       record={selectedRecord}

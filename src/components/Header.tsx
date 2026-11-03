@@ -2,25 +2,36 @@ import { CircleHelp, Bell } from "lucide-react";
 import appIcon from "@/assets/app-icon.svg";
 import {
   AppHeader,
-  AppName,
   ActionIconButton,
   ProfileMenu,
   defaultProfileMenuGroups,
   DashboardIcon,
 } from "@nicecxone/lyra-ui";
+import { WideAppNameMenu } from "@/components/WideAppNameMenu";
+import { USER_TYPES, useUserType } from "@/lib/user-type";
 
 /**
- * App-level header — mirrors lyra-ux-templates/src/components/Header.tsx,
- * minus the multi-page AppMenu switcher (this is a single-page app, so
- * there's nothing else to navigate to).
+ * App-level header — mirrors lyra-ux-templates/src/components/Header.tsx.
+ * The app name is a `WideAppNameMenu` (local `AppNameMenu` with a wider popover) whose items are user types; picking one
+ * changes which Configure nav items are hidden (see `lib/user-type.tsx`).
  */
 export function Header() {
+  const { userType, setUserType } = useUserType();
   return (
     <AppHeader
       appName={
-        <AppName
+        <WideAppNameMenu
+          groups={[
+            {
+              items: USER_TYPES.map((t) => ({
+                label: t.label,
+                active: t.key === userType.key,
+                onClick: () => setUserType(t.key),
+              })),
+            },
+          ]}
           icon={<img src={appIcon} alt="Outbound Engagement" className="h-6 w-6" />}
-          name="Outbound Engagement"
+          name={userType.label}
         />
       }
       actions={

@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Lock, Copy, Pencil, Maximize2, Minimize2, RefreshCw, Trash2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { Lock, Copy, Pencil, Maximize2, Minimize2, RefreshCw, Trash2, X } from "lucide-react";
 import {
   AdminShell,
   TabList,
@@ -11,9 +12,9 @@ import {
   Button,
   Separator,
   Tooltip,
-  DateRangeFilterChip,
   Container,
   InteriorPanel,
+  cn,
   AiIcon,
   type DashboardCardMetric,
   type BarChartSeries,
@@ -459,6 +460,14 @@ interface MonitorDashboardPageProps {
   onAskAiToggle?: () => void;
 }
 
+/* Renders `children` in a portal on `document.body` while `active`, so the
+   fullscreen dashboard overlays the entire page (header, left nav, tabs)
+   instead of only the content column — a `fixed` element inside AdminShell
+   would be clipped/re-anchored by its container-query containment. */
+function FullScreenLayer({ active, children }: { active: boolean; children: ReactNode }) {
+  return active ? createPortal(children, document.body) : <>{children}</>;
+}
+
 export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProps) {
   const [tabs, setTabs] = useState(WORKSPACE_TABS);
   const [activeTabId, setActiveTabId] = useState("4");
@@ -501,7 +510,10 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
       independence IS the "persist the filter if users click between call
       centers" behavior, not something extra bolted on. Defaults to
       `"today"` per "default to Today." */
-  const [dateFilter, setDateFilter] = useState<MonitorDateRange>("today");
+  // Monitor shows real-time dashboards, so the toolbar date filter is hidden
+  // and the cards always read the "today" dataset. The per-range data tables
+  // and `DateRangeFilterChip` wiring above are kept so the filter can return.
+  const dateFilter: MonitorDateRange = "today";
   const metricCards = METRIC_CARDS_BY_RANGE[dateFilter];
   const emailChart = EMAIL_CHART_BY_RANGE[dateFilter];
   const emailsLaunchedTotal = emailChart.series[0].data.reduce((sum, n) => sum + n, 0);
@@ -510,11 +522,18 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
   /* ── Fullscreen toggle — same `Maximize2`/`Minimize2` icon-button pattern
       as lyra-ui's `Templates/Dashboards` demo toolbar (and
       `ContainerHeader.stories.tsx`'s own "WithActions" fullscreen toggle).
-      Real effect here (not decorative): hides the workspace tab strip so
-      the card region gets the full scrolling height — the toolbar row
-      itself (with this same button, swapped to "Exit Fullscreen") stays
-      put either way. */
+      Real effect here (not decorative): the toolbar + card region becomes
+      a full-page overlay (portal to `document.body`, `fixed inset-0`, fade/
+      zoom-in) covering the app header, left nav and tabs. The toolbar row
+      (with this same button, swapped to "Exit Fullscreen") stays at the
+      top of the overlay; Escape also exits. */
   const [isFullScreen, setIsFullScreen] = useState(false);
+  useEffect(() => {
+    if (!isFullScreen) return;
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFullScreen(false); };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullScreen]);
 
   /* ── Card click / kebab "Edit" → right `InteriorPanel` — see the doc
       comment above. One helper, one pair of state values: whichever card
@@ -556,8 +575,8 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
         // down here the same way lyra-form-generator threads
         // `onAiPanelToggle` into its own pages).
         <>
-          <Button variant="outline">Secondary</Button>
-          <Button>Primary</Button>
+          <Button variant="outline">Manage Dashboards</Button>
+          <Button>Create New</Button>
           {onAskAiToggle && (
             <>
               <div className="mx-1 h-6 w-px bg-lyra-border-subtle" />
@@ -582,7 +601,6 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
           sits outside padding in the box model). See PROJECT_SUMMARY.md's
           "TabList's horizontal inset always goes directly on TabList"
           entry. */}
-      {!isFullScreen && (
         <div className="shrink-0 bg-lyra-bg-surface-base">
           <TabList aria-label="Report tabs" className="px-4" overflowMenu overflowBreakpoint="wide">
             {tabs.map((tab) => (
@@ -592,14 +610,14 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
                 onClick={() => setActiveTabId(tab.id)}
                 icon={<Lock className="h-3.5 w-3.5" strokeWidth={1.5} />}
                 onRemove={() => removeTab(tab.id)}
-                removeLabel={`Remove ${tab.label}`}
+                removeIcon={<X className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />}
+                removeFocusable
               >
                 {tab.label}
               </Tab>
             ))}
           </TabList>
         </div>
-      )}
 
       {/* Flex row beneath the tabs: the scrolling card region on the left,
           the click-to-open `InteriorPanel` on the right. `InteriorPanel`
@@ -609,7 +627,16 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Everything below the tabs scrolls as its own region — the page
             header (owned by `AdminShell`) and tab strip above never move. */}
-        <div className="flex-1 overflow-y-auto">
+        <FullScreenLayer active={isFullScreen}>
+        <div
+          className={cn(
+            "overflow-y-auto",
+            isFullScreen
+              // Overlays the whole page; below the floating Ask AI / Online Help panels (z-[9999]+).
+              ? "fixed inset-0 z-[1000] bg-lyra-bg-surface-base animate-in fade-in-0 zoom-in-95 duration-200"
+              : "flex-1"
+          )}
+        >
           <DashboardTemplate maxWidth="none" className="flex flex-col">
           {/* This row IS the toolbar here — no generic Quick Search/filter-
               chip/action-icon `TableToolbar` (that's `Templates/Dashboards`'
@@ -624,19 +651,6 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
               Showing data for: <span className="text-lyra-fg-default lyra-body-sm-emphasis">{selectedLabel}</span>
             </p>
             <div className="flex items-center gap-2">
-              {/* One filter for the whole page — replaces the per-card
-                  `DateRangeFilterChip` every metric/summary card used to
-                  carry in its own `headerActions`, per "remove the
-                  individual filters in the dashboard cards ... and add a
-                  filter to the toolbar." `options` is Monitor's own 5-value
-                  list (no "Custom") — `DateRangeFilterValue` gained
-                  `"last30"`/`"last90"` in lyra-ui specifically for this. */}
-              <DateRangeFilterChip
-                value={dateFilter}
-                onValueChange={(v) => setDateFilter(v as MonitorDateRange)}
-                options={MONITOR_DATE_FILTER_OPTIONS}
-              />
-              <div className="mx-1 h-6 w-px bg-lyra-border-subtle" />
               <Button variant="ghost" size="icon-md" title="Duplicate">
                 <Copy className="h-4 w-4" strokeWidth={1.5} />
               </Button>
@@ -806,6 +820,7 @@ export function MonitorDashboardPage({ onAskAiToggle }: MonitorDashboardPageProp
           </div>
           </DashboardTemplate>
         </div>
+        </FullScreenLayer>
 
         <InteriorPanel
           side="right"

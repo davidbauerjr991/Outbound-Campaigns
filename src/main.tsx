@@ -4,13 +4,16 @@ import { BrowserRouter } from "react-router-dom";
 import "@nicecxone/lyra-ui/styles";
 import "./index.css";
 import App from "./App";
+import { UserTypeProvider } from "@/lib/user-type";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     {/* basename matches vite.config.ts's `base` so client-side routes resolve
         correctly under the GitHub Pages project path (/Outbound-Campaigns/) */}
     <BrowserRouter basename="/Outbound-Campaigns">
-      <App />
+      <UserTypeProvider>
+        <App />
+      </UserTypeProvider>
     </BrowserRouter>
   </StrictMode>
 );

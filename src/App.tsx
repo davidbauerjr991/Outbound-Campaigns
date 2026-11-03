@@ -3,11 +3,16 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-
 import { Header } from "@/components/Header";
 import { Sidebar, type SidebarPage } from "@/components/Sidebar";
 import { OutboundCampaignsPage } from "@/components/OutboundCampaignsPage";
+import { ReviewPage } from "@/components/ReviewPage";
+import { ConfigureLayout } from "@/components/ConfigureLayout";
+import { ContactTimingConfigPage } from "@/components/ContactTimingConfigPage";
+import { ProfilesConfigPage } from "@/components/ProfilesConfigPage";
+import { CustomersPage } from "@/components/CustomersPage";
 import { MonitorDashboardPage } from "@/components/MonitorDashboardPage";
+import { DraggablePanel } from "@/components/DraggablePanel";
 import {
   ContentArea,
   Container,
-  DraggablePanel,
   AiPanel,
   type DraggableVariant,
   type AiPanelSuggestion,
@@ -76,7 +81,11 @@ function App() {
   // so `Sidebar.tsx`'s own `buildNavItems` didn't need to change at all.
   const navigate = useNavigate();
   const location = useLocation();
-  const activePage: SidebarPage = location.pathname.startsWith("/configure") ? "configure" : "monitor";
+  const activePage: SidebarPage = location.pathname.startsWith("/configure")
+    ? "configure"
+    : location.pathname.startsWith("/review")
+      ? "review"
+      : "monitor";
   const handleNavigate = useCallback((page: SidebarPage) => navigate(`/${page}`), [navigate]);
 
   /* ── Online Help panel — docked (toggled open/closed to the right of the
@@ -409,7 +418,13 @@ function App() {
                 URL of its own the way it used to. */}
             <Routes>
               <Route path="/monitor" element={<MonitorDashboardPage onAskAiToggle={() => openPanel("ai")} />} />
-              <Route path="/configure" element={<OutboundCampaignsPage />} />
+              <Route path="/configure" element={<ConfigureLayout />}>
+                <Route index element={<OutboundCampaignsPage />} />
+                <Route path="customers" element={<CustomersPage />} />
+                <Route path="contact-timing" element={<ContactTimingConfigPage />} />
+                <Route path="profiles" element={<ProfilesConfigPage />} />
+              </Route>
+              <Route path="/review" element={<ReviewPage onAskAiToggle={() => openPanel("ai")} />} />
               <Route path="*" element={<Navigate to="/monitor" replace />} />
             </Routes>
           </Container>

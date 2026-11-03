@@ -9,6 +9,8 @@ export default defineConfig({
   base: "/Outbound-Campaigns/",
   plugins: [react()],
   resolve: {
+    // lyra-ui has its own node_modules; without dedupe two copies of React load.
+    dedupe: ["react", "react-dom"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@nicecxone/lyra-ui/styles": path.resolve(__dirname, "../lyra-ui/src/styles/lyra-tokens.css"),
@@ -20,6 +22,7 @@ export default defineConfig({
       // second, drifting list. See lyra-ui/CONTRIBUTING.md §1.
       "@nicecxone/lyra-ui/agents-data": path.resolve(__dirname, "../lyra-ui/src/components/__stories__/create-new-agents-data.ts"),
       "@nicecxone/lyra-ui/customers-data": path.resolve(__dirname, "../lyra-ui/src/components/__stories__/create-new-customers-data.ts"),
+      "@nicecxone/lyra-ui/heatmap-chart": path.resolve(__dirname, "../lyra-ui/src/components/heatmap-chart.tsx"),
       "@nicecxone/lyra-ui": path.resolve(__dirname, "../lyra-ui/src/index.ts"),
     },
   },
